@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>幻想乡抽卡</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+/* Layout: one narrow column over an optional background picture — pulls, results, leaderboard, stats, collection, look settings */
+:root{
+  --bg:#f2f0f5; --surface:#ffffff; --fg:#1e1a29; --muted:#6c6680; --line:#dcd7e5;
+  --accent:#c22f3b; --accent-fg:#ffffff; --shade:rgba(20,16,28,.72); --dim:.55;
+  --r:#7d8899; --sr:#7a59d4; --ssr:#c98f0c; --ur:#e0364a;
+  --display:"Noto Serif SC","Songti SC","STSong",serif;
+  --body:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14111b; --surface:#1f1a29; --fg:#ece8f4; --muted:#9e97b3; --line:#332c42;
+  --r:#97a2b3; --sr:#9c82f0; --ssr:#e8b23a; --ur:#ff5a6c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14111b; --surface:#1f1a29; --fg:#ece8f4; --muted:#9e97b3; --line:#332c42;
+  --r:#97a2b3; --sr:#9c82f0; --ssr:#e8b23a; --ur:#ff5a6c; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.6}
+.bgimg{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;pointer-events:none}
+.bgimg::after{content:"";position:absolute;inset:0;background:var(--bg);opacity:var(--dim)}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--display);font-weight:900;font-size:30px;margin:0;letter-spacing:.04em;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:18px;margin:0 0 10px}
+h3{font-size:13px;color:var(--muted);font-weight:600;margin:14px 0 2px;letter-spacing:.05em}
+.sub{color:var(--muted);margin:2px 0 0;font-size:13px}
+.rates{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.rate{font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid currentColor;background:var(--surface);font-variant-numeric:tabular-nums}
+.c-R{color:var(--r)}.c-SR{color:var(--sr)}.c-SSR{color:var(--ssr)}.c-UR{color:var(--ur)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.pull{border:0;border-radius:10px;padding:14px 10px;background:var(--accent);color:var(--accent-fg);font-family:var(--display);font-weight:900;font-size:18px;letter-spacing:.1em}
+.pull.alt{background:var(--surface);color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.pull:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--sr);outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.empty{grid-column:1/-1;border:1px dashed var(--line);background:var(--surface);border-radius:12px;padding:28px 16px;text-align:center;color:var(--muted)}
+.card{aspect-ratio:3/4;max-width:100%;perspective:600px}
+.inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .5s ease}
+.card.shown .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.back{background:var(--surface);border:2px solid var(--line)}
+.back.yinyang::before{content:"";width:44%;aspect-ratio:1;border-radius:50%;background:conic-gradient(var(--fg) 0 50%,var(--surface) 0);border:2px solid var(--fg);opacity:.25}
+.back.ofuda{background:repeating-linear-gradient(0deg,var(--surface) 0 14px,color-mix(in srgb,var(--accent) 14%,var(--surface)) 14px 16px);border-color:var(--accent)}
+.back.ofuda::before{content:"封";font-family:var(--display);font-weight:900;font-size:28px;color:var(--accent);background:var(--surface);border:2px solid var(--accent);padding:6px 4px;line-height:1}
+.back.stars{background:radial-gradient(circle at 20% 30%,var(--accent) 0 2px,transparent 3px),radial-gradient(circle at 70% 20%,var(--ssr) 0 2px,transparent 3px),radial-gradient(circle at 55% 65%,var(--accent) 0 1.5px,transparent 2.5px),radial-gradient(circle at 30% 80%,var(--sr) 0 2px,transparent 3px),radial-gradient(circle at 85% 75%,var(--ssr) 0 1.5px,transparent 2.5px),var(--surface)}
+.front{transform:rotateY(180deg);background:var(--surface);border:2px solid var(--rc);gap:2px;padding:6px}
+.front .tag{position:absolute;top:5px;left:6px;font-size:11px;font-weight:700;color:var(--rc);letter-spacing:.05em;z-index:2}
+.front .glyph{font-family:var(--display);font-weight:900;font-size:clamp(26px,8vw,40px);color:var(--rc);line-height:1}
+.front .nm{font-size:12px;font-weight:600;text-align:center;line-height:1.3}
+.front .ver{font-size:11px;color:var(--muted)}
+.front.SSR{background:color-mix(in srgb,var(--ssr) 10%,var(--surface))}
+.front.UR{background:color-mix(in srgb,var(--ur) 12%,var(--surface));box-shadow:0 0 0 2px var(--ssr) inset}
+.front.img{padding:0;justify-content:flex-end}
+.front.img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.front.img .tag{background:var(--rc);color:#fff;border-radius:4px;padding:0 5px}
+.front.img .band{position:relative;width:100%;background:var(--shade);padding:4px 4px 5px;display:flex;flex-direction:column;align-items:center}
+.front.img .nm{color:#fff}.front.img .ver{color:#ddd}
+.card.shown .front.UR,.card.shown .front.SSR{animation:pulse 1.6s ease-in-out 2}
+@keyframes pulse{50%{filter:brightness(1.18)}}
+.new{position:absolute;top:5px;right:6px;font-size:10px;background:var(--accent);color:var(--accent-fg);border-radius:4px;padding:0 4px;z-index:2}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+details.panel>summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary h2{margin:0}
+details.panel>summary::after{content:"展开";font-size:13px;color:var(--muted)}
+details.panel[open]>summary::after{content:"收起"}
+details.panel[open]>summary{margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;font-variant-numeric:tabular-nums}
+.stat{display:flex;flex-direction:column}
+.stat b{font-size:20px;font-family:var(--display)}
+.stat span{font-size:12px;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meta strong{color:var(--fg)}
+.lb{display:flex;flex-direction:column}
+.lbrow{display:grid;grid-template-columns:22px 28px minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.lbrow:first-child{border-top:0}
+.lbrow .rk{font-family:var(--display);font-weight:900;color:var(--muted);text-align:center}
+.lbrow.top .rk{color:var(--accent)}
+.lbrow img{width:28px;height:28px;border-radius:50%}
+.lbrow .who{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.lbrow .who small{font-weight:400;color:var(--muted);margin-left:6px}
+.lbrow .nums{font-size:12px;color:var(--muted);text-align:right;line-height:1.35}
+.lbrow .nums b{color:var(--fg)}
+.me-tag{font-size:10px;color:var(--accent-fg);background:var(--accent);border-radius:4px;padding:0 4px;margin-left:6px;font-weight:600}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.tools input[type=search],.tools select,.field input[type=text],.field select{flex:1 1 140px;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:6px 10px;font-size:14px}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.row{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.thumb{width:38px;height:38px;flex-shrink:0;border-radius:8px;border:1px dashed var(--line);background:var(--bg);color:var(--muted);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:11px;padding:0}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb.has{border-style:solid}
+.mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.mid .n{font-weight:600;line-height:1.3}
+.mid .n small{font-weight:400;color:var(--muted);margin-left:6px;font-size:11px}
+.pips{display:flex;gap:4px;flex-wrap:wrap}
+.pip{font-size:11px;min-width:32px;text-align:center;border-radius:5px;padding:0 4px;border:1px solid var(--line);color:var(--muted);font-variant-numeric:tabular-nums}
+.pip.on{border-color:currentColor;font-weight:700}
+.mini{border:0;background:none;color:var(--muted);font-size:12px;padding:2px 4px;text-decoration:underline}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:4px 0 10px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.note{font-size:13px;color:var(--muted);margin:0 0 8px}
+.form{display:flex;flex-direction:column;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field>span{font-size:13px;color:var(--muted)}
+.field .line{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--fg)}
+input[type=color]{width:36px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:2px}
+input[type=range]{flex:1 1 160px;min-width:0;accent-color:var(--accent)}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.ghost{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;padding:6px 12px;font-size:13px}
+.solid{border:0;background:var(--accent);color:var(--accent-fg);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 16px}
+.confirm{display:flex;gap:8px;align-items:center;font-size:13px;flex-wrap:wrap}
+.confirm .yes{border-color:var(--accent);color:var(--accent)}
+.toast{font-size:13px;color:var(--accent);min-height:1.2em}
+@media (prefers-reduced-motion:reduce){.inner{transition:none}.card.shown .front{animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="bgimg" id="bgimg" hidden></div>
+<div class="wrap">
+  <header class="panel">
+    <h1 id="title">幻想乡抽卡</h1>
+    <p class="sub" id="subtitle">欢迎来到幻想乡，祝你早日出 UR</p>
+    <p class="sub" id="poolInfo"></p>
+    <div class="rates">
+      <span class="rate c-R">R 78%</span><span class="rate c-SR">SR 20%</span>
+      <span class="rate c-SSR">SSR 1.9%</span><span class="rate c-UR">UR 0.1%</span>
+    </div>
+  </header>
+
+  <div class="btns">
+    <button class="pull alt" id="one">单抽</button>
+    <button class="pull" id="ten">十连</button>
+  </div>
+
+  <section class="grid" id="results" aria-live="polite">
+    <div class="empty">点「单抽」或「十连」开始。给角色配过图的话，抽到时卡面会显示图片。</div>
+  </section>
+
+  <section class="panel">
+    <h2>我的统计</h2>
+    <div class="stats" id="stats"></div>
+    <div class="meta" id="meta"></div>
+  </section>
+
+  <details class="panel" id="collPanel" open>
+    <summary><h2>图鉴</h2></summary>
+    <div id="progress"></div>
+    <p class="note" id="imgNote">点左边的方框给角色配图，比如你拍的 fumo 照片。图片只保存在你的浏览器里。</p>
+    <div class="tools">
+      <input type="search" id="q" placeholder="搜索角色" aria-label="搜索角色">
+      <select id="work" aria-label="按作品筛选"></select>
+      <label class="chk"><input type="checkbox" id="ownedOnly">只看已拥有</label>
+    </div>
+    <div class="toast" id="toast" aria-live="polite"></div>
+    <div id="coll"></div>
+  </details>
+
+  <details class="panel" id="lookPanel">
+    <summary><h2>外观</h2></summary>
+    <div class="form">
+      <p class="note" id="lookNote" style="margin:0">改动会立即预览，点「保存外观」后才会生效，保存在你自己的浏览器里。</p>
+      <label class="field"><span>标题</span><input type="text" id="fTitle" maxlength="24"></label>
+      <label class="field"><span>副标题</span><input type="text" id="fSub" maxlength="60"></label>
+      <div class="field"><span>主题色</span><div class="line" id="swatches"></div></div>
+      <label class="field"><span>标题字体</span>
+        <select id="fFont">
+          <option value="serif">宋体（端庄）</option>
+          <option value="round">快乐体（可爱）</option>
+          <option value="brush">毛笔字（和风）</option>
+        </select></label>
+      <label class="field"><span>卡背</span>
+        <select id="fBack">
+          <option value="yinyang">阴阳玉</option>
+          <option value="ofuda">符札</option>
+          <option value="stars">星空弹幕</option>
+        </select></label>
+      <div class="field"><span>背景图片</span>
+        <div class="line">
+          <button class="ghost" id="bgPick">选择图片</button>
+          <button class="ghost" id="bgClear">移除背景</button>
+        </div></div>
+      <label class="field"><span>背景淡化程度</span><div class="line"><input type="range" id="fDim" min="0" max="90" step="5"></div></label>
+      <div class="actions" id="lookActions">
+        <button class="solid" id="saveMine">保存外观</button>
+        <button class="ghost" id="resetMine">恢复默认</button>
+      </div>
+      <div class="toast" id="lookToast" aria-live="polite"></div>
+    </div>
+  </details>
+
+  <div class="foot">
+    <span class="sub">抽卡记录、配图和外观都保存在你自己的浏览器里</span>
+    <span id="resetArea"><button class="ghost" id="reset">清空抽卡记录</button></span>
+  </div>
+  <input type="file" id="file" accept="image/*" hidden>
+  <input type="file" id="bgFile" accept="image/*" hidden>
+</div>
+
+<script>
+const RATES=[["UR",0.1],["SSR",1.9],["SR",20],["R",78]];
+const VER={R:"日常",SR:"异变",SSR:"宴会",UR:"幻想"};
+const ORDER=["R","SR","SSR","UR"];
+const WORKS=[
+ ["旧作 · 灵异传","博丽灵梦、玄爷、魅魔、菊理、矜羯罗、幽幻魔眼"],
+ ["旧作 · 封魔录","里香、明罗、雾雨魔理沙"],
+ ["旧作 · 梦时空","爱莲、小兔姬、卡娜·安娜贝拉尔、朝仓理香子、北白河千百合、冈崎梦美、留琴"],
+ ["旧作 · 幻想乡","奥莲姬、库鲁米、艾丽、风见幽香、梦月、幻月"],
+ ["旧作 · 怪绮谈","萨拉、露易兹、爱丽丝·玛格特洛依德、雪、舞、梦子、神绮"],
+ ["红魔乡","露米娅、大妖精、琪露诺、红美铃、小恶魔、帕秋莉·诺蕾姬、十六夜咲夜、蕾米莉亚·斯卡雷特、芙兰朵露·斯卡雷特"],
+ ["妖妖梦","蕾蒂·霍瓦特洛克、橙、莉莉霍瓦特、露娜萨·普莉兹姆利巴、梅露兰·普莉兹姆利巴、莉莉卡·普莉兹姆利巴、魂魄妖梦、西行寺幽幽子、八云蓝、八云紫"],
+ ["萃梦想","伊吹萃香"],
+ ["永夜抄","莉格露·奈特巴格、米斯蒂娅·萝蕾拉、上白泽慧音、因幡帝、铃仙·优昙华院·因幡、八意永琳、蓬莱山辉夜、藤原妹红"],
+ ["花映冢","梅蒂欣·梅兰可莉、射命丸文、小野塚小町、四季映姬"],
+ ["风神录","秋静叶、秋穰子、键山雏、河城荷取、犬走椛、东风谷早苗、八坂神奈子、洩矢诹访子"],
+ ["绯想天","永江衣玖、比那名居天子"],
+ ["地灵殿","琪斯美、黑谷山女、水桥帕露西、星熊勇仪、古明地觉、火焰猫燐、灵乌路空、古明地恋"],
+ ["星莲船","娜兹玲、多多良小伞、云居一轮、村纱水蜜、寅丸星、圣白莲、封兽鵺"],
+ ["文花帖DS","姬海棠果"],
+ ["神灵庙","幽谷响子、宫古芳香、霍青娥、苏我屠自古、物部布都、丰聪耳神子、二岩猯藏"],
+ ["心绮楼","秦心"],
+ ["辉针城","若鹭姬、赤蛮奇、今泉影狼、九十九八桥、九十九弁弁、鬼人正邪、少名针妙丸、堀川雷鼓"],
+ ["深秘录","宇佐见堇子"],
+ ["绀珠传","清兰、铃瑚、哆来咪·苏伊特、稀神探女、克劳恩皮丝、纯狐、赫卡提亚·拉碧斯拉祖利"],
+ ["凭依华","依神女苑、依神紫苑"],
+ ["天空璋","爱塔妮缇拉尔瓦、坂田合欢乃、高丽野阿吽、矢田寺成美、丁礼田舞、尔子田里乃、摩多罗隐岐奈"],
+ ["鬼形兽","戎璎花、牛崎润美、庭渡久侘歌、吉吊八千慧、杖刀偶磨弓、埴安神袿姬、骊驹早鬼"],
+ ["刚欲异闻","饕餮尤魔"],
+ ["虹龙洞","豪德寺三花、山城高岭、驹草山如、玉造魅须丸、菅牧典、饭纲丸龙、天弓千亦、姬虫百百世"],
+ ["兽王园","孙美天、三头慧之子、天火人血枪、豫母都日狭美、日白残无"],
+ ["锦上京","尘冢ウバメ、封兽チミ、道神驯子、ユイマン·浅间、磐永阿梨夜、渡里ニナ"],
+ ["书籍 · 漫画","森近霖之助、朱鹭子、稗田阿求、桑尼米尔克、露娜切露德、斯塔萨菲雅、绵月丰姬、绵月依姬、茨木华扇、本居小铃、奥野田美宵、宇佐见莲子、玛艾露贝莉·赫恩"]
+];
+const GLYPH={"博丽灵梦":"灵","雾雨魔理沙":"魔","十六夜咲夜":"咲","蕾米莉亚·斯卡雷特":"蕾","芙兰朵露·斯卡雷特":"芙","帕秋莉·诺蕾姬":"帕","魂魄妖梦":"妖","西行寺幽幽子":"幽","八云紫":"紫","东风谷早苗":"苗","琪露诺":"⑨","古明地觉":"觉","古明地恋":"恋","秦心":"心","卡娜·安娜贝拉尔":"卡","八云蓝":"蓝","射命丸文":"文","圣白莲":"莲","藤原妹红":"红","蓬莱山辉夜":"辉"};
+const CHARS=[];
+WORKS.forEach(([w,list])=>list.split("、").forEach(n=>CHARS.push({name:n,work:w,glyph:GLYPH[n]||n[0]})));
+const NAMES=new Set(CHARS.map(c=>c.name));
+
+/* ---------- local state ---------- */
+const KEY="gensokyo-gacha-v2",LOOKKEY="gensokyo-look-v1";
+function blank(){return{total:0,counts:{R:0,SR:0,SSR:0,UR:0},owned:{},since:0,lastHigh:null,lastHighAt:0}}
+let S=blank();
+try{
+  const raw=localStorage.getItem(KEY);
+  if(raw)S=Object.assign(blank(),JSON.parse(raw));
+  else{
+    const old=localStorage.getItem("gensokyo-gacha-v1");
+    if(old){
+      S=Object.assign(blank(),JSON.parse(old));
+      const ren={"蕾米莉亚":"蕾米莉亚·斯卡雷特","芙兰朵露":"芙兰朵露·斯卡雷特","帕秋莉":"帕秋莉·诺蕾姬"};
+      for(const k in ren)if(S.owned[k]){S.owned[ren[k]]=S.owned[k];delete S.owned[k]}
+    }
+  }
+}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const LOCALIMG=new Map();let LOCALBG=null;let IDB=null;
+function openIDB(){return new Promise(res=>{
+  try{const rq=indexedDB.open("gensokyo-gacha-img",1);
+    rq.onupgradeneeded=()=>rq.result.createObjectStore("img");
+    rq.onsuccess=()=>res(rq.result);rq.onerror=()=>res(null);
+  }catch(e){res(null)}
+})}
+function idbAll(){return new Promise(res=>{
+  if(!IDB)return res();
+  try{const rq=IDB.transaction("img").objectStore("img").openCursor();
+    rq.onsuccess=()=>{const c=rq.result;if(c){if(c.key==="__bg__")LOCALBG=c.value;else LOCALIMG.set(c.key,c.value);c.continue()}else res()};
+    rq.onerror=()=>res();
+  }catch(e){res()}
+})}
+function idbPut(k,v){try{if(IDB)IDB.transaction("img","readwrite").objectStore("img").put(v,k)}catch(e){}}
+function idbDel(k){try{if(IDB)IDB.transaction("img","readwrite").objectStore("img").delete(k)}catch(e){}}
+
+/* ---------- shared state (filled in when the page's capabilities answer) ---------- */
+let DB=null,USER=null,ASSETS=null,MYID=null,EDITOR=false;
+let SHAREDIMG={};let SHAREDLOOK=null;let PLAYERS=[];
+
+/* ---------- look ---------- */
+const DEFAULT_LOOK={title:"幻想乡抽卡",subtitle:"欢迎来到幻想乡，祝你早日出 UR",accent:"#c22f3b",font:"serif",back:"yinyang",dim:55,bg:null};
+const FONTS={serif:'"Noto Serif SC","Songti SC","STSong",serif',round:'"ZCOOL KuaiLe","Noto Serif SC",cursive',brush:'"Ma Shan Zheng","Noto Serif SC",cursive'};
+const SWATCHES=[["#c22f3b","巫女红"],["#e4769b","樱粉"],["#4b5bd6","月夜蓝"],["#2f8f6b","竹林绿"],["#c48a10","金色"],["#7a59d4","紫"]];
+let localLook=null;try{const r=localStorage.getItem(LOOKKEY);if(r)localLook=JSON.parse(r)}catch(e){}
+function effectiveLook(){return Object.assign({},DEFAULT_LOOK,SHAREDLOOK||{},localLook||{})}
+let draft=null;
+function bgUrl(l){if(!l.bg)return null;if(l.bg==="local")return LOCALBG;return "/_blob/"+l.bg}
+function lum(hex){const n=parseInt(hex.slice(1),16),c=[n>>16&255,n>>8&255,n&255].map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*c[0]+.7152*c[1]+.0722*c[2]}
+function applyLook(l){
+  const st=document.documentElement.style;
+  st.setProperty("--accent",l.accent);
+  st.setProperty("--accent-fg",lum(l.accent)>.45?"#1e1a29":"#ffffff");
+  st.setProperty("--display",FONTS[l.font]||FONTS.serif);
+  st.setProperty("--dim",String((l.dim??55)/100));
+  $("title").textContent=l.title||DEFAULT_LOOK.title;
+  $("subtitle").textContent=l.subtitle||"";
+  $("subtitle").hidden=!l.subtitle;
+  const u=bgUrl(l),b=$("bgimg");
+  if(u){b.style.backgroundImage=`url("${u}")`;b.hidden=false}else{b.hidden=true;b.style.backgroundImage=""}
+  CARDBACK=l.back||"yinyang";
+}
+let CARDBACK="yinyang";
+
+/* ---------- gacha ---------- */
+function rollRarity(){const x=Math.random()*100;let acc=0;for(const [r,p] of RATES){acc+=p;if(x<acc)return r}return "R"}
+function pullOnce(){
+  const r=rollRarity();
+  const c=CHARS[Math.floor(Math.random()*CHARS.length)];
+  const o=S.owned[c.name]||(S.owned[c.name]={R:0,SR:0,SSR:0,UR:0});
+  const isNew=o[r]===0;
+  o[r]++;S.counts[r]++;S.total++;
+  if(r==="SSR"||r==="UR"){S.since=0;S.lastHigh=c.name+" · "+r;S.lastHighAt=Date.now()}else S.since++;
+  return{r,c,isNew};
+}
+function collected(){let n=0;for(const k in S.owned){if(!NAMES.has(k))continue;ORDER.forEach(r=>{if(S.owned[k][r])n++})}return n}
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function imgFor(name){if(LOCALIMG.has(name))return LOCALIMG.get(name);if(SHAREDIMG[name])return "/_blob/"+SHAREDIMG[name];return null}
+function cardHTML({r,c,isNew}){
+  const img=imgFor(c.name);
+  const head=`<span class="tag">${r}</span>${isNew?'<span class="new">NEW</span>':""}`;
+  const body=img
+    ?`<img src="${esc(img)}" alt=""><div class="band"><span class="nm">${esc(c.name)}</span><span class="ver">${VER[r]}</span></div>`
+    :`<span class="glyph">${esc(c.glyph)}</span><span class="nm">${esc(c.name)}</span><span class="ver">${VER[r]}</span>`;
+  return`<div class="inner"><div class="face back ${CARDBACK}"></div><div class="face front ${r}${img?" img":""}" style="--rc:var(--${r.toLowerCase()})">${head}${body}</div></div>`;
+}
+function doPull(n){
+  const res=[];for(let i=0;i<n;i++)res.push(pullOnce());
+  save();
+  const g=$("results");g.innerHTML="";
+  res.forEach((x,i)=>{
+    const el=document.createElement("div");el.className="card";
+    el.innerHTML=cardHTML(x);
+    el.setAttribute("aria-label",`${x.r} ${x.c.name} ${VER[x.r]}`);
+    g.appendChild(el);
+    setTimeout(()=>el.classList.add("shown"),reduce?0:120+i*110);
+  });
+  $("one").disabled=$("ten").disabled=true;
+  setTimeout(()=>{$("one").disabled=$("ten").disabled=false},reduce?0:220+n*110);
+  renderStats();renderColl();schedulePush();
+}
+
+/* ---------- my stats + collection ---------- */
+function pct(a,b){return b?(a/b*100).toFixed(a/b<0.01?2:1)+"%":"–"}
+function renderStats(){
+  $("stats").innerHTML=ORDER.map(r=>`<div class="stat c-${r}"><b>${S.counts[r]}</b><span>${r} · ${pct(S.counts[r],S.total)}</span></div>`).join("");
+  $("meta").innerHTML=`<span>总抽数 <strong>${S.total}</strong></span>
+    <span>距上次 SSR/UR <strong>${S.since}</strong> 抽</span>
+    <span>最近高星 <strong>${S.lastHigh?esc(S.lastHigh):"暂无"}</strong></span>`;
+  const got=collected(),all=CHARS.length*4;
+  const pics=CHARS.filter(c=>imgFor(c.name)).length;
+  $("progress").innerHTML=`<div class="meta" style="margin-top:0"><span>收集进度 <strong>${got} / ${all}</strong></span><span>已配图 <strong>${pics}</strong> 位</span></div><div class="bar"><i style="width:${got/all*100}%"></i></div>`;
+}
+function renderColl(){
+  const q=$("q").value.trim(),w=$("work").value,own=$("ownedOnly").checked;
+  let html="",last=null,shown=0;
+  CHARS.forEach(c=>{
+    if(w&&c.work!==w)return;
+    if(q&&!c.name.includes(q))return;
+    const o=S.owned[c.name]||{};
+    if(own&&!ORDER.some(r=>o[r]))return;
+    if(c.work!==last){html+=`<h3>${esc(c.work)}</h3>`;last=c.work}
+    shown++;
+    const img=imgFor(c.name),mine=LOCALIMG.has(c.name),shared=!!SHAREDIMG[c.name];
+    const src=mine?"仅自己可见":shared?"大家可见":"";
+    const canRemove=mine||(shared&&EDITOR);
+    const pips=ORDER.map(r=>{const k=o[r]||0;return`<span class="pip c-${r}${k?" on":""}">${r}${k?"×"+k:""}</span>`}).join("");
+    html+=`<div class="row">
+      <button class="thumb${img?" has":""}" data-pick="${esc(c.name)}" aria-label="给${esc(c.name)}配图">${img?`<img src="${esc(img)}" alt="">`:"配图"}</button>
+      <div class="mid"><span class="n">${esc(c.name)}${src?`<small>${src}</small>`:""}</span><span class="pips">${pips}</span></div>
+      ${canRemove?`<button class="mini" data-del="${esc(c.name)}">移除图</button>`:""}
+    </div>`;
+  });
+  $("coll").innerHTML=shown?html:`<p class="note">没有符合条件的角色。</p>`;
+}
+
+/* ---------- image helpers ---------- */
+function shrink(file,max,q){return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{const s=Math.min(1,max/Math.max(im.width,im.height));const cv=document.createElement("canvas");
+    cv.width=Math.round(im.width*s);cv.height=Math.round(im.height*s);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);
+    URL.revokeObjectURL(url);cv.toBlob(b=>b?res({blob:b,dataUrl:cv.toDataURL("image/jpeg",q)}):rej(),"image/jpeg",q)};
+  im.onerror=()=>{URL.revokeObjectURL(url);rej()};im.src=url;
+})}
+let tt;function toast(m){$("toast").textContent=m;clearTimeout(tt);tt=setTimeout(()=>$("toast").textContent="",4000)}
+let lt;function lookToast(m){$("lookToast").textContent=m;clearTimeout(lt);lt=setTimeout(()=>$("lookToast").textContent="",4000)}
+
+let picking=null;
+$("coll").addEventListener("click",async e=>{
+  const p=e.target.closest("[data-pick]"),d=e.target.closest("[data-del]");
+  if(p){picking=p.dataset.pick;$("file").value="";$("file").click()}
+  if(d){
+    const n=d.dataset.del;
+    if(LOCALIMG.has(n)){LOCALIMG.delete(n);idbDel(n);toast(`已移除 ${n} 的个人配图`)}
+    else if(EDITOR&&SHAREDIMG[n]){
+      const id=SHAREDIMG[n];const next=Object.assign({},SHAREDIMG);delete next[n];
+      try{await DB.doc("shared/images").set({map:next});SHAREDIMG=next;try{await ASSETS.delete(id)}catch(_){}toast(`已移除 ${n} 的公共配图`)}
+      catch(err){toast("移除失败，请稍后再试")}
+    }
+    renderColl();renderStats();
+  }
+});
+$("file").addEventListener("change",async()=>{
+  const f=$("file").files[0];if(!f||!picking)return;const name=picking;
+  let out;try{out=await shrink(f,480,.85)}catch(e){toast("这张图片读不出来，换一张 JPG 或 PNG 试试");return}
+  if(EDITOR&&ASSETS&&DB){
+    toast(`正在上传 ${name} 的配图…`);
+    try{
+      const up=await ASSETS.upload(out.blob,{type:"image/jpeg"});
+      const next=Object.assign({},SHAREDIMG,{[name]:up.id});
+      await DB.doc("shared/images").set({map:next});SHAREDIMG=next;
+      if(LOCALIMG.has(name)){LOCALIMG.delete(name);idbDel(name)}
+      toast(`已为 ${name} 配图，所有人都能看到`);
+    }catch(err){LOCALIMG.set(name,out.dataUrl);idbPut(name,out.dataUrl);toast(`上传失败，已先保存为你自己的配图`)}
+  }else{
+    LOCALIMG.set(name,out.dataUrl);idbPut(name,out.dataUrl);
+    toast(IDB?`已为 ${name} 配图（只在你的浏览器里）`:`已为 ${name} 配图（这个浏览器不能长期保存，刷新后会丢失）`);
+  }
+  renderColl();renderStats();
+});
+
+/* ---------- look panel ---------- */
+function fillLookForm(l){
+  $("fTitle").value=l.title||"";$("fSub").value=l.subtitle||"";
+  $("fFont").value=l.font;$("fBack").value=l.back;$("fDim").value=l.dim;
+  [...$("swatches").querySelectorAll(".sw")].forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.c.toLowerCase()===l.accent.toLowerCase())));
+  $("fColor").value=l.accent;
+}
+function readDraft(){draft.title=$("fTitle").value.trim();draft.subtitle=$("fSub").value.trim();draft.font=$("fFont").value;draft.back=$("fBack").value;draft.dim=+$("fDim").value}
+$("swatches").innerHTML=SWATCHES.map(([c,n])=>`<button class="sw" data-c="${c}" style="background:${c}" aria-label="${n}" aria-pressed="false"></button>`).join("")+`<input type="color" id="fColor" aria-label="自定义颜色">`;
+$("swatches").addEventListener("click",e=>{const b=e.target.closest(".sw");if(!b)return;draft.accent=b.dataset.c;fillLookForm(draft);applyLook(draft)});
+$("fColor").addEventListener("input",()=>{draft.accent=$("fColor").value;fillLookForm(draft);applyLook(draft)});
+["fTitle","fSub","fFont","fBack","fDim"].forEach(id=>$(id).addEventListener("input",()=>{readDraft();applyLook(draft)}));
+let pendingBg=null;
+$("bgPick").onclick=()=>{$("bgFile").value="";$("bgFile").click()};
+$("bgFile").addEventListener("change",async()=>{
+  const f=$("bgFile").files[0];if(!f)return;
+  try{pendingBg=await shrink(f,1600,.82)}catch(e){lookToast("这张图片读不出来，换一张试试");return}
+  draft.bg="pending";
+  const b=$("bgimg");b.style.backgroundImage=`url("${pendingBg.dataUrl}")`;b.hidden=false;
+  lookToast("背景已预览，记得保存");
+});
+$("bgClear").onclick=()=>{draft.bg=null;pendingBg=null;applyLook(draft);lookToast("背景已移除，记得保存")};
+$("saveMine").onclick=()=>{
+  readDraft();const l=Object.assign({},draft);
+  if(l.bg==="pending"&&pendingBg){LOCALBG=pendingBg.dataUrl;idbPut("__bg__",LOCALBG);l.bg="local"}
+  else if(l.bg==="pending")l.bg=null;
+  if(l.bg!=="local"&&LOCALBG&&!l.bg){LOCALBG=null;idbDel("__bg__")}
+  localLook=l;try{localStorage.setItem(LOOKKEY,JSON.stringify(l))}catch(e){}
+  pendingBg=null;draft=effectiveLook();applyLook(draft);fillLookForm(draft);
+  lookToast("外观已保存");renderResultsBacks();
+};
+$("resetMine").onclick=()=>{
+  localLook=null;try{localStorage.removeItem(LOOKKEY)}catch(e){}
+  if(LOCALBG){LOCALBG=null;idbDel("__bg__")}
+  pendingBg=null;draft=effectiveLook();applyLook(draft);fillLookForm(draft);
+  lookToast(SHAREDLOOK?"已恢复为大家共用的外观":"已恢复默认外观");renderResultsBacks();
+};
+$("lookPanel").addEventListener("toggle",()=>{if($("lookPanel").open){draft=effectiveLook();fillLookForm(draft)}else{draft=effectiveLook();applyLook(draft)}});
+function renderResultsBacks(){document.querySelectorAll(".face.back").forEach(b=>b.className="face back "+CARDBACK)}
+
+function schedulePush(){}
+
+/* ---------- boot ---------- */
+$("work").innerHTML=`<option value="">全部作品</option>`+WORKS.map(([w])=>`<option>${w}</option>`).join("");
+["q","work","ownedOnly"].forEach(id=>$(id).addEventListener("input",renderColl));
+$("poolInfo").textContent=`卡池共 ${CHARS.length} 位角色，每位有四种品质：R 日常、SR 异变、SSR 宴会、UR 幻想`;
+$("one").onclick=()=>doPull(1);
+$("ten").onclick=()=>doPull(10);
+function bindReset(){
+  $("reset").onclick=()=>{
+    $("resetArea").innerHTML=`<span class="confirm">清空抽卡记录？配图和外观会保留<button class="ghost yes" id="yes">清空</button><button class="ghost" id="no">取消</button></span>`;
+    $("yes").onclick=()=>{S=blank();save();$("results").innerHTML='<div class="empty">记录已清空，重新开始抽吧。</div>';renderStats();renderColl();schedulePush();restore()};
+    $("no").onclick=restore;
+  };
+}
+function restore(){$("resetArea").innerHTML='<button class="ghost" id="reset">清空抽卡记录</button>';bindReset()}
+bindReset();
+draft=effectiveLook();applyLook(draft);renderStats();renderColl();
+
+openIDB().then(db=>{IDB=db;return idbAll()}).then(()=>{draft=effectiveLook();applyLook(draft);renderStats();renderColl()});
+
+</script>
+</body>
+</html>
